@@ -43,7 +43,7 @@ def tfdata_generator(images, labels, is_training, batch_size=16, buffer_size=500
 
     if is_training:
         for f in augmentations:
-            if tf.random_uniform([1], 0, 1) > 0.6:
+            if tf.random.uniform(()) > 0.5:
                 dataset = dataset.map(f, num_parallel_calls=4)
 
     dataset = dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
