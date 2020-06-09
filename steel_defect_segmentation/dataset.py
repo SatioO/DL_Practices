@@ -6,8 +6,9 @@ def tfdata_generator(images, labels, is_training, batch_size=16, buffer_size=500
         img = tf.io.read_file(filename)
         img = tf.image.decode_jpeg(img, channels=3)
         img = tf.image.convert_image_dtype(img, tf.float32)
+        img = tf.image.resize(img, [128, 800])
 
-        mask_out = tf.zeros((256, 1600, 1), dtype=tf.uint8)
+        mask_out = tf.zeros((128, 800, 1), dtype=tf.uint8)
         for j in range(4):
             mask = tf.io.read_file(labels[j])
             mask = tf.image.decode_png(mask, channels=1)
