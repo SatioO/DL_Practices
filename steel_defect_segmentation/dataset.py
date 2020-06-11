@@ -1,21 +1,31 @@
 import tensorflow as tf
 
+tf.random.set_seed(42)
 
-def tfdata_generator(images, labels, is_training, batch_size=16, buffer_size=50000):
-    def parse_fn(filename, labels):
-        img = tf.io.read_file(filename)
-        img = tf.image.decode_jpeg(img, channels=3)
-        img = tf.image.convert_image_dtype(img, tf.float32)
-        img = tf.image.resize(img, [128, 800])
 
-        mask_out = tf.zeros((128, 800, 1), dtype=tf.uint8)
+def tfdata_generator(images, labels, is_training, batch_size=16, buffer_size=5000):
+    '''Construct a data generator using tf.Dataset'''
+
+    def parse_function(filename, labels):
+        # reading image
+        image_string = tf.io.read_file(filename)
+        # decode image as tensor of dtype uint8
+        image = tf.image.decode_jpeg(image_string, channels=3)
+
+        # convert to float values in range [0, 1]
+        image = tf.image.convert_image_dtype(image, tf.float32)
+        image = tf.image.resize(image, [128, 800])  # resize to desired size
+
+        # reading label masks
+        y = tf.zeros((128, 800, 1), dtype=tf.uint8)
         for j in range(4):
-            mask = tf.io.read_file(labels[j])
-            mask = tf.image.decode_png(mask, channels=1)
+            mask_string = tf.io.read_file(labels[j])
+            mask = tf.image.decode_jpeg(mask_string)
             mask = tf.image.convert_image_dtype(mask, tf.uint8)
-            mask_out = tf.concat([mask_out, mask], 2)
 
-        return img, mask_out[:, :, 1:]
+            y = tf.concat([y, mask], 2)
+
+        return image, y[:, :, 1:]
 
     def flip(image, labels):
         image = tf.image.random_flip_left_right(image, seed=1)
@@ -36,15 +46,16 @@ def tfdata_generator(images, labels, is_training, batch_size=16, buffer_size=500
     dataset = tf.data.Dataset.from_tensor_slices((images, labels))
 
     if is_training:
-        dataset = dataset.shuffle(buffer_size)
+        dataset = dataset.shuffle(buffer_size)  # depends on sample size
 
-    dataset = dataset.map(parse_fn, num_parallel_calls=4)
+    # Transform and batch data at the same time
+    dataset = dataset.map(parse_function, num_parallel_calls=4)
 
     augmentations = [flip, color]
 
     if is_training:
         for f in augmentations:
-            if tf.random.uniform(()) > 0.5:
+            if tf.random.uniform([1], 0, 1) > 0.6:
                 dataset = dataset.map(f, num_parallel_calls=4)
 
     dataset = dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
