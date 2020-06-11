@@ -19,14 +19,19 @@ val_masks = sorted(glob.glob(os.path.join(
 print('Found', len(train_imgs), 'training images')
 print('Found', len(val_imgs), 'validation images\n')
 
+img_width = 224
+img_height = 224
+
 
 def read_img(img_path, mask_path):
     img = tf.io.read_file(img_path)
-    img = tf.cast(tf.image.decode_png(img, channels=3), dtype=tf.float32)
+    img = tf.image.decode_png(img, channels=3)
+    img = tf.image.resize(img, [img_height, img_width])
+    img = tf.image.per_image_standardization(img)
 
     mask = tf.io.read_file(mask_path)
     mask = tf.image.decode_png(mask, channels=1)
-
+    mask = tf.cast(tf.image.resize(mask, [img_height, img_width]), tf.uint8)
     return img, mask
 
 
@@ -35,5 +40,7 @@ train_dataset = train_dataset.map(
     read_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 if __name__ == "__main__":
-    for i in train_dataset.take(10):
-        print(np.unique(i[1]))
+    for i in train_dataset.take(4):
+        fig, ax = plt.subplots(1, 2, figsize=(12, 12))
+        ax[0].imshow(i[0])
+        ax[1].imshow(np.reshape(i[1], (img_height, img_width)))
