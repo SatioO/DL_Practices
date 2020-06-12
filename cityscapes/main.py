@@ -8,6 +8,7 @@ from model import deeplabv3
 from visualization import create_mask, display
 
 tf.random.set_seed(42)
+np.random.seed(1)
 
 data_dir = "../data/cityscapes/"
 
