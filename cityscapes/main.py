@@ -10,23 +10,10 @@ from visualization import create_mask, display
 tf.random.set_seed(42)
 np.random.seed(1)
 
-data_dir = "../data/cityscapes/"
+data_dir = "../data/cityscapes/tfrecords"
 
-train_imgs = sorted(tf.io.gfile.glob(os.path.join(
-    data_dir, "leftImg8bit/train", "*/*.png")))
-train_masks = sorted(tf.io.gfile.glob(os.path.join(
-    data_dir, "gtFine/train", "*/*_gtFine_labelIds.png")))
-
-val_imgs = sorted(tf.io.gfile.glob(os.path.join(
-    data_dir, "leftImg8bit/val", "*/*.png")))
-val_masks = sorted(tf.io.gfile.glob(os.path.join(
-    data_dir, "gtFine/val", "*/*_gtFine_labelIds.png")))
-
-print('Found', len(train_imgs), 'training images')
-print('Found', len(val_imgs), 'validation images\n')
-
-img_width = 512
-img_height = 512
+img_width = 224
+img_height = 224
 n_classes = 34
 batch_size = 16
 
@@ -50,10 +37,15 @@ class DisplayCallback(tf.keras.callbacks.Callback):
 
 if __name__ == "__main__":
     # Prepare data for training
+    train_ds = tf.data.Dataset.list_files(
+        os.path.join(data_dir, "train-*.tfrecord"))
+    val_ds = tf.data.Dataset.list_files(
+        os.path.join(data_dir, "val-*.tfrecord"))
+
     train_batches = data_generator(
-        train_imgs, train_masks, is_training=True, img_height=img_height, img_width=img_width, batch_size=batch_size)
+        train_ds, is_training=True, img_height=img_height, img_width=img_width, batch_size=batch_size)
     val_batches = data_generator(
-        val_imgs, val_masks, is_training=False, img_height=img_height, img_width=img_width, batch_size=batch_size)
+        val_ds, is_training=False, img_height=img_height, img_width=img_width, batch_size=batch_size)
 
     # Visualize sample
     for image, mask in train_batches.take(1):
@@ -87,8 +79,8 @@ if __name__ == "__main__":
     callbacks = [mc, tb, dc]
 
     model.fit(train_batches,
-              steps_per_epoch=len(train_imgs) // batch_size,
+              steps_per_epoch=100,
               epochs=300,
               validation_data=val_batches,
-              validation_steps=len(val_imgs) // batch_size,
+              validation_steps=30,
               callbacks=callbacks)

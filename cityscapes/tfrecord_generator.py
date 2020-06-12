@@ -75,7 +75,7 @@ def tfdata_generator(images, masks, category):
                 writer.write(example.SerializeToString())
 
             print(
-                f"tfrecord conversion completed for {category} shared {shard_id}")
+                f"tfrecord conversion completed for {category} shared {shard_id} \n")
 
 
 if __name__ == "__main__":

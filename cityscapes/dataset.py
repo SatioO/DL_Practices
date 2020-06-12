@@ -1,18 +1,28 @@
 import tensorflow as tf
 
 
-def data_generator(images, masks, is_training, img_height=224, img_width=224, batch_size=16, buffer_size=5000):
-    def parse_fn(img_path, mask_path):
-        img = tf.io.read_file(img_path)
-        img = tf.cast(tf.image.decode_png(img, channels=3), tf.float32)
-        img = tf.image.resize(img, [img_height, img_width])
+def data_generator(dataset, is_training, img_height=224, img_width=224, batch_size=16, buffer_size=5000):
+    def parse_fn(example_proto):
+        features = {
+            'image/filename':
+                tf.io.FixedLenFeature((), tf.string, default_value=''),
+            'image/encoded':
+                tf.io.FixedLenFeature((), tf.string, default_value=''),
+            'label/filename':
+                tf.io.FixedLenFeature((), tf.string, default_value=''),
+            'label/encoded':
+                tf.io.FixedLenFeature((), tf.string, default_value=''),
+        }
+
+        parsed_feature = tf.io.parse_single_example(example_proto, features)
+
+        img = tf.io.parse_tensor(parsed_feature['image/encoded'], tf.float32)
+        img = tf.reshape(img, [224, 224, 3])
         img = tf.clip_by_value(img, 0, 255)
         img = tf.image.per_image_standardization(img)
 
-        mask = tf.io.read_file(mask_path)
-        mask = tf.image.decode_png(mask, channels=1)
-        mask = tf.cast(tf.image.resize(
-            mask, [img_height, img_width]), tf.uint8)
+        mask = tf.io.parse_tensor(parsed_feature['label/encoded'], tf.uint8)
+        mask = tf.reshape(mask, [224, 224, 1])
 
         return img, mask
 
@@ -30,10 +40,9 @@ def data_generator(images, masks, is_training, img_height=224, img_width=224, ba
 
         return img, mask
 
-    dataset = tf.data.Dataset.from_tensor_slices((images, masks))
-
-    if is_training:
-        dataset = dataset.shuffle(buffer_size)
+    dataset = tf.data.TFRecordDataset(dataset)
+    # if is_training:
+    #     dataset = dataset.shuffle(buffer_size)
     dataset = dataset.map(
         parse_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
