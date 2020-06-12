@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 def data_generator(images, masks, is_training, img_height=224, img_width=224, batch_size=16, buffer_size=5000):
     def parse_fn(img_path, mask_path):
         img = tf.io.read_file(img_path)
