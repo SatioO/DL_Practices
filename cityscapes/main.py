@@ -25,15 +25,15 @@ print('Found', len(val_imgs), 'validation images\n')
 
 img_width = 512
 img_height = 512
-n_classes = 33
+n_classes = 34
 batch_size = 16
 
 if __name__ == "__main__":
     # Prepare data for training
     train_batches = data_generator(
-        train_imgs, train_masks, is_training=True, img_height=img_height, img_width=img_width)
+        train_imgs, train_masks, is_training=True, img_height=img_height, img_width=img_width, batch_size=batch_size)
     val_batches = data_generator(
-        val_imgs, val_masks, is_training=False, img_height=img_height, img_width=img_width)
+        val_imgs, val_masks, is_training=False, img_height=img_height, img_width=img_width, batch_size=batch_size)
 
     # Prepare model for training
     loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
