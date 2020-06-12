@@ -63,6 +63,7 @@ if __name__ == "__main__":
     # Prepare model for training
     loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
     strategy = tf.distribute.MirroredStrategy()
+
     with strategy.scope():
         model = deeplabv3(img_height, img_width, n_classes)
 

@@ -26,6 +26,11 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
+def _float_feature(value):
+    """Returns a float_list from a float / double."""
+    return tf.train.Feature(float_list=tf.train.FloatList(value=[value]))
+
+
 def img_seg_to_example(img_path, mask_path, img, mask):
     feature = {
         'image/filename': _bytes_feature(img_path.encode('utf8')),
@@ -48,15 +53,24 @@ def tfdata_generator(images, masks, category):
         output_filename = os.path.join(
             OUTPUT_DIR, '%s-%05d-of-%05d.tfrecord' % (category, shard_id, NUM_SHARDS))
 
+        print(f"Processing: {output_filename}")
+
         with tf.io.TFRecordWriter(output_filename) as writer:
             start_idx = shard_id * num_per_shard
             end_idx = min((shard_id + 1) * num_per_shard, num_images)
 
             for i in range(start_idx, end_idx):
-                img = tf.io.gfile.GFile(images[i], 'rb').read()
-                mask = tf.io.gfile.GFile(masks[i], 'rb').read()
 
-                example = img_seg_to_example(images[i], masks[i], img, mask)
+                img = tf.io.gfile.GFile(images[i], 'rb').read()
+                img = tf.cast(tf.image.decode_png(img, channels=3), tf.float32)
+                img = tf.image.resize(img, [224, 224])
+
+                mask = tf.io.gfile.GFile(masks[i], 'rb').read()
+                mask = tf.image.decode_png(mask, channels=1)
+                mask = tf.cast(tf.image.resize(mask, [224, 224]), tf.uint8)
+
+                example = img_seg_to_example(
+                    images[i], masks[i], tf.io.serialize_tensor(img), tf.io.serialize_tensor(mask))
 
                 writer.write(example.SerializeToString())
 
