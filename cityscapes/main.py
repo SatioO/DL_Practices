@@ -37,18 +37,20 @@ if __name__ == "__main__":
 
     # Prepare model for training
     loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
-    model = deeplabv3(img_height, img_width, n_classes)
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+        model = deeplabv3(img_height, img_width, n_classes)
 
-    for layer in model.layers:
-        if isinstance(layer, tf.keras.layers.BatchNormalization):
-            layer.momentum = 0.9997
-            layer.epsilon = 1e-5
-        elif isinstance(layer, tf.keras.layers.Conv2D):
-            layer.kernel_regularizer = tf.keras.regularizers.l2(1e-4)
+        for layer in model.layers:
+            if isinstance(layer, tf.keras.layers.BatchNormalization):
+                layer.momentum = 0.9997
+                layer.epsilon = 1e-5
+            elif isinstance(layer, tf.keras.layers.Conv2D):
+                layer.kernel_regularizer = tf.keras.regularizers.l2(1e-4)
 
-    model.compile(loss=loss,
-                  optimizer=tf.optimizers.Adam(learning_rate=1e-4),
-                  metrics=['accuracy'])
+        model.compile(loss=loss,
+                      optimizer=tf.optimizers.Adam(learning_rate=1e-4),
+                      metrics=['accuracy'])
 
     tb = TensorBoard(log_dir='logs', write_graph=True, update_freq='batch')
     mc = ModelCheckpoint(mode='min', filepath='top_weights.h5',
